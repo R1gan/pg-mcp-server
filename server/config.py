@@ -1,5 +1,5 @@
 # server/config.py
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 from server.database import Database
@@ -16,17 +16,17 @@ async def app_lifespan(app: FastMCP) -> AsyncIterator[dict]:
     """Manage application lifecycle."""
     mcp.state = {"db": global_db}
     logger.info("Application startup - using global database manager")
-    
+
     try:
         yield {"db": global_db}
     finally:
-        # Don't close connections on individual session end
-        pass
+        # This lifespan runs once for the whole application, so closing on exit
+        # tears down connections at server shutdown (not per client session).
+        logger.info("Application shutdown - closing all database connections")
+        await global_db.close()
 
 # Create the MCP instance
 mcp = FastMCP(
-    "pg-mcp-server", 
-    debug=True, 
+    "pg-mcp-server",
     lifespan=app_lifespan,
-    dependencies=["asyncpg", "mcp"]
 )

@@ -32,33 +32,15 @@ register_natural_language_prompts()  # Natural language to SQL prompts
 register_data_visualization_prompts() # Data visualization prompts
 
 
-from contextlib import asynccontextmanager
-from starlette.applications import Starlette
-from starlette.routing import Mount
-import uvicorn
-
-@asynccontextmanager
-async def starlette_lifespan(app):
-    logger.info("Starlette application starting up")
-    yield
-    logger.info("Starlette application shutting down, closing all database connections")
-    await global_db.close()
-
 if __name__ == "__main__":
-    logger.info("Starting MCP server with SSE transport")
-    app = Starlette(
-        routes=[Mount('/', app=mcp.sse_app())],
-        lifespan=starlette_lifespan
-    )
-    
-    # Configure Uvicorn with our logging setup
-    uvicorn_log_config = configure_uvicorn_logging(log_level)
-    
-    # Use our configured log level for Uvicorn
-    uvicorn.run(
-        app, 
-        host="0.0.0.0", 
-        port=8000, 
+    logger.info("Starting MCP server with HTTP (streamable) transport")
+
+    # FastMCP runs the server (and its lifespan, which manages the database
+    # connections) directly. Database cleanup happens in app_lifespan on shutdown.
+    mcp.run(
+        transport="http",
+        host="0.0.0.0",
+        port=8000,
         log_level=log_level.lower(),
-        log_config=uvicorn_log_config
+        uvicorn_config={"log_config": configure_uvicorn_logging(log_level)},
     )
