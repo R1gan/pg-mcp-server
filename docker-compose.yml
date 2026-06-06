@@ -6,8 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: pg-mcp
-    ports:
-      - "8000:8000"
+    # Host networking so the container shares the host loopback and can reach the
+    # SSH tunnel on 127.0.0.1:5432. Server still binds 8000 directly on the host.
+    network_mode: "host"
     environment:
       - LOG_LEVEL=DEBUG
       - PYTHONUNBUFFERED=1
@@ -15,9 +16,3 @@ services:
       # For development: mount app directory to enable hot-reloading
       - ./server:/app/server
     restart: unless-stopped
-    networks:
-      - pg-mcp-network
-
-networks:
-  pg-mcp-network:
-    driver: bridge
